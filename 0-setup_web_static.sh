@@ -1,69 +1,38 @@
 #!/usr/bin/env bash
-#setup new server
-# check for nginx installation, install if not installed
-if ! nginx -v &>/dev/null ;
-then
-        apt-get -y update
-        apt-get install -y nginx
-fi
+# Sets up a web server for deployment of web_static.
 
-# create required folder and index file
-#create /data folder
-if [ ! -d /data/ ];
-then
-        mkdir /data
-fi
+sudo apt-get update
+sudo apt-get install -y nginx
 
-#create subfolders
-if [ ! -d /data/web_static/ ];
-then
-        mkdir -p /data/web_static/
-fi
+sudo mkdir -p /data/web_static/releases/test/
+sudo mkdir -p /data/web_static/shared/
+echo "Holberton School" > /data/web_static/releases/test/index.html
+sudo ln -sf /data/web_static/releases/test/ /data/web_static/current
 
-if [ ! -d /data/web_static/releases/ ];
-then
-        mkdir -p /data/web_static/releases/
-fi
-if [ ! -d /data/web_static/shared/ ];
-then
-        mkdir -p /data/web_static/shared/
-fi
-if [ ! -d /data/web_static/releases/test/ ]
-then
-        mkdir -p /data/web_static/releases/test/
-fi
-printf "
-<html>
-        <head>
-        </head>
-        <body>
-                Holberton School
-        </body>
-</html>" >/data/web_static/releases/test/index.html
-ln -sf /data/web_static/releases/test/ /data/web_static/current
-chown -R ubuntu /data/
-chgrp -R ubuntu /data/
-# create nginx configuration
-printf "server {
-        listen   80 default_server;
-        listen   [::]:80 default_server;
-        root     /var/www/html;
-        index    index.html index.htm;
-        location /hbnb_static {
-                alias /data/web_static/current;
-                index index.html;
-                }
-        location /redirect_me {
-                return 301 https://www.youtube.com;
-        }
-        error_page 404 /custom_404.html;
-        location = /custom_404.html {
-                root /var/www/errors/;
-                internal;
-        }
-        location / {
-                add_header X-Served-By %s;
-        }
+sudo chown -R ubuntu /data/
+sudo chgrp -R ubuntu /data/
 
-}" "$HOSTNAME"> /etc/nginx/sites-available/default
-service nginx restart
+printf %s "server {
+    listen 80;
+    listen [::]:80 default_server;
+    add_header X-Served-By $HOSTNAME;
+    root   /etc/nginx/html;
+    index  index.html index.htm;
+
+    location /hbnb_static {
+        alias /data/web_static/current;
+        index index.html index.htm;
+    }
+
+    location /redirect_me {
+        return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;
+    }
+
+    error_page 404 /404.html;
+    location /404 {
+      root /etc/nginx/html;
+      internal;
+    }
+}" > /etc/nginx/sites-available/default
+
+sudo service nginx restart
